@@ -2,43 +2,15 @@ Python Robotics Simulator
 ================================
 
 This is a simple, portable robot simulator developed by [Student Robotics](https://studentrobotics.org).
-Some of the arenas and the exercises have been modified for the Research Track I course
+
+
 
 Installing and running
 ----------------------
 
 The simulator requires a Python 2.7 installation, the [pygame](http://pygame.org/) library, [PyPyBox2D](https://pypi.python.org/pypi/pypybox2d/2.1-r331), and [PyYAML](https://pypi.python.org/pypi/PyYAML/).
 
-Pygame, unfortunately, can be tricky (though [not impossible](http://askubuntu.com/q/312767)) to install in virtual environments. If you are using `pip`, you might try `pip install hg+https://bitbucket.org/pygame/pygame`, or you could use your operating system's package manager. Windows users could use [Portable Python](http://portablepython.com/). PyPyBox2D and PyYAML are more forgiving, and should install just fine using `pip` or `easy_install`.
 
-## Troubleshooting
-
-When running `python run.py <file>`, you may be presented with an error: `ImportError: No module named 'robot'`. This may be due to a conflict between sr.tools and sr.robot. To resolve, symlink simulator/sr/robot to the location of sr.tools.
-
-On Ubuntu, this can be accomplished by:
-* Find the location of srtools: `pip show sr.tools`
-* Get the location. In my case this was `/usr/local/lib/python2.7/dist-packages`
-* Create symlink: `ln -s path/to/simulator/sr/robot /usr/local/lib/python2.7/dist-packages/sr/`
-
-## Exercise
------------------------------
-
-To run one or more scripts in the simulator, use `run.py`, passing it the file names. 
-
-I am proposing you three exercises, with an increasing level of difficulty.
-The instruction for the three exercises can be found inside the .py files (exercise1.py, exercise2.py, exercise3.py).
-
-When done, you can run the program with:
-
-```bash
-$ python run.py exercise1.py
-```
-
-You have also the solutions of the exercises (folder solutions)
-
-```bash
-$ python run.py solutions/exercise1_solution.py
-```
 
 Robot API
 ---------
@@ -103,3 +75,89 @@ for m in markers:
 ```
 
 [sr-api]: https://studentrobotics.org/docs/programming/sr/
+
+Python node that controls the robot to put all the golden boxes together
+------------------------------------------------------------------------
+
+### Main Logic ###
+
+1. Obtain parameters for the `first_token` and `list_of_markers` using the `find_closer_token` function.
+2. Identify the closest token, grab it, and update `list_of_markers` and `list_of_markers_done` with the `catch_token` function.
+3. Determine the farthest token and its distance using `find_farthest_token`.
+4. Move to the center, considering the midpoint between the handled token and the farthest one, and release the token with `go_to_pos_release`, providing half the distance found in the previous step.
+
+Afterward, enter an indefinite loop that continues until all tokens are centralized.
+Within the loop, include a conditional block that exits when the `list of tokens` is empty. Reuse the `find_closer_token` and `catch_token` functions to relocate all remaining tokens to the center using `go_to_pos_release2`. This function differs from the previous one as the distance of the first token is specified, releasing the token near another one with a distinct logical sequence.
+    
+    
+### Function to Find the Closest Token ###
+
+The `find_closer_token` function takes `list_of_markers` and `list_of_markers_done` as arguments. Initialize control variables: `dist=100`, `offset=-1`, and `lista=[]`. In an indefinite loop, allow the robot to turn slightly until a complete rotation is done. Meanwhile, fill the `list_of_markers` with all visible tokens. Check if the distance seen for the token is the smallest. Break the loop when the first token seen is visible again, aligning the robot with the closest token using the `look_at_token` function. Output the token number and the updated `list_of_markers`.
+
+### Function to Look at a Specific Token ###
+
+The `look_at_token` function takes the token number as an argument, allowing the robot to turn slightly until the searched token is found.
+
+### Function to Find Tokens that Are Further Away ###
+
+The `find_farthest_token` function initializes a local variable with the content of the provided list. Use it as a condition for a while loop until the list is empty. Allow the robot to turn slightly until the farthest distance is found. Remove the seen token from the control list and align the robot with the closest token using the `look_at_token` function. Output the token number, rotation with respect to the robot, and distance.
+
+### Function to Catch a Token ###
+
+The `catch_token` function takes the token number and two lists (`list_of_markers` and `list_of_markers_done`). Initiate an indefinite loop, continuously updating parameters with the `set_parameters` function. These parameters help the robot reach and grab the token. After grabbing the token, update `list_of_markers` and `list_of_markers_done` using the `setting_lists` function to prevent the robot from grabbing the same token again.
+
+### Function to Update Lists of Markers and Processed Markers ###
+
+The `setting_lists` function switches data from one list to another.
+
+### Function to Go to a Position and Release the Token ###
+
+The `go_to_pos_release2` function takes the token number as an argument, utilizing `look_at_token` to align the robot with the specified token. Initiate an indefinite loop, continuously updating parameters with the `set_parameters` function. These parameters are essential to release the handled token near the specified token.
+
+### Function to Go to the Center of the Tokens' Disposition and Release the Token ###
+
+The `go_to_pos_release2` function takes the token number as an argument, utilizing `look_at_token` to align the robot with the specified token. Initiate an indefinite loop, continuously updating parameters with the `set_parameters` function. These parameters are essential to release the handled token near the specified token.
+
+### Function to Get Parameters of a Specific Token ###
+
+The `set_parameters` function takes the token number as an argument, extracting parameters from the `R.see` method through a conditional block. It checks for a match between the argument and the token seen by the robot, providing the angle of the token seen with respect to the robot and its distance.
+
+Pseudocode
+----------
+
+### Pseudocode for Main Logic ###
+ 
+
+1. **Start**
+2. Initialize the robot and constants
+3. Get parameters of the first token and 'list_of_markers' with "find_closer_token" function
+4. Find the closest token, grab it, and update 'list_of_markers' and 'list_of_markers_done'
+5. Find the farthest token and get its parameters with "find_further_token(list_of_markers)"
+6. Go to the center of token disposition and release the token with "go_to_pos_release(dist1/2, offset1)"
+7. **Loop:**
+8. If the list of tokens is empty, **break the loop**
+9. Find the closest token, process it, and update the lists
+10. Go to a position and release the token with "go_to_pos_release2(first_token)"
+11. **End**
+
+### Flowchart for "find_closer_token" Function ###
+
+1. **Start**
+2. Initialize variables: `dist = 100`, `offset = -1`
+3. Create an empty list: `lista`
+4. **Loop indefinitely:**
+   5. Turn the robot by an angle
+   6. **For each visible marker:**
+      7. Add markers to the `lista` list for rotation control
+      8. If the marker's offset is not in `lista`, add it
+      9. If the marker's offset is not in 'list_of_markers' and not in 'list_of_markers_done':
+      10. Add the marker's offset to 'list_of_markers'
+      11. Update the minimum distance and offset if the marker is in 'list_of_markers' and closer
+      12. If the first seen marker's offset matches the first offset in 'lista' and there is more than one marker in 'lista':
+      13. Use 'look_at_token(offset)' to align with the closest token
+      14. **Return** the offset and 'list_of_markers'
+15. **End**
+
+
+
+
